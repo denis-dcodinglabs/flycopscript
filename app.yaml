@@ -1,0 +1,17 @@
+service: backend
+runtime: custom
+env: flex
+
+env_variables:
+  DATABASE_URL: 'postgresql://flycop:flycop@104.199.31.112:5432/flycop'
+
+runtime_config:
+  # Ensure dependencies are installed
+  requirements_file: requirements.txt
+
+handlers:
+- url: /static
+  static_dir: static
+
+- url: /.*
+  script: auto  # Or you can remove this line, as `entrypoint` is already specified above
