@@ -1,15 +1,17 @@
 from datetime import datetime, timedelta
 import psycopg2
 import random
+import subprocess
 import time
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from database import save_flights
+
 load_dotenv()
 
-
 DATABASE_URL = "dbname=flycop user=flycop host=104.199.31.112 password=flycop port=5432" 
+
 def save_flights(flights, from_location, to_location, day, url):
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
@@ -88,8 +90,8 @@ def extract_flight_info(page_html, target_date):
     
     return flights
 
-def main():
-    
+def run_prishtina_ticket_script():
+    subprocess.run(["playwright", "install"])
     airport_pairs = [
         ('PRN', 'DUS'),
         ('PRN', 'MUC'),
@@ -100,7 +102,7 @@ def main():
     for departure, arrival in airport_pairs:
         for day in range(1, 30):
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
+                browser = p.chromium.launch(headless=True)
                 context = browser.new_context(
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                     extra_http_headers={
@@ -132,7 +134,6 @@ def main():
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
 
-
                 if flights:
                     print("Flight information extracted:")
                     for flight in flights:
@@ -142,8 +143,11 @@ def main():
 
                 # Save the flight information to the database
                 save_flights(flights, departure, arrival, day, url)
-                print("Flight information saved to flights.db")
+                print("Flight information saved to database.")
                 browser.close()
+    
+    return {"status": "success", "message": "Prishtina ticket script executed"}
 
+# You can still call main() directly for standalone script execution
 if __name__ == "__main__":
-    main()
+    run_prishtina_ticket_script()
