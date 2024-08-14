@@ -4,8 +4,8 @@ import os
 import psycopg2
 from flask import Flask, jsonify, request
 import logging
+from prishtinaticket import run_prishtina_ticket_script
 
-from rfly import scrape_flights
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -34,6 +34,16 @@ def query_db(query, args=(), one=False):
         return (rv[0] if rv else None) if one else rv
     except Exception as e:
         return {'error': str(e)}
+
+@app.route('/script', methods=['GET'])
+def run_prishtina_script():
+    try:
+        result = run_prishtina_ticket_script()
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/fetch-price-differences', methods=['GET'])
 def fetch_price_differences():
