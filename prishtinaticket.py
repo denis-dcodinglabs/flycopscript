@@ -1,4 +1,4 @@
-rom datetime import datetime, timedelta
+from datetime import datetime, timedelta
 import psycopg2
 import random
 import time
