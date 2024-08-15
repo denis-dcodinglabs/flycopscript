@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
 import json
-import sys
-import subprocess
 import os
 import random
 import time
@@ -12,20 +10,14 @@ from database import save_flights
 
 load_dotenv()
 
-def ensure_playwright_installed():
-    try:
-        import playwright
-    except ImportError:
-        subprocess.run([sys.executable, "-m", "pip", "install", "playwright"])
-        subprocess.run([sys.executable, "-m", "playwright", "install"])
-
-ensure_playwright_installed()
+day = 1
 def random_sleep(min_seconds=1, max_seconds=5):
     time.sleep(random.uniform(min_seconds, max_seconds))
 
 def extract_flight_info(page_html, target_date):
     soup = BeautifulSoup(page_html, 'html.parser')
     flights = []
+
 
     # Select all rows in the table
     rows = soup.select('table.flug_auswahl tr.flugzeile, table.flug_auswahl tr.ausgewaehlterFlug')
@@ -49,11 +41,13 @@ def extract_flight_info(page_html, target_date):
 
                 price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
                 price_text = price_text.replace('€', '').replace(',', '.').strip()
+                price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
                 if price_text.lower() == 'sold out':
-                    price = 'N/A'
+                    price = None
                 else:
-                    price = price_text if price_text != 'N/A' else 'N/A'
-                    
+                    price_text = price_text.replace('€', '').replace(',', '.').strip()
+                    price = float(price_text) if price_text != 'N/A' else 'N/A'
+
                 flight = {
                     'date': flight_date,
                     'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
@@ -65,15 +59,8 @@ def extract_flight_info(page_html, target_date):
     return flights
 
 def main():
-    airport_pairs = [
-        ('PRN', 'DUS'),
-        ('PRN', 'MUC'),
-        ('DUS', 'PRN'),
-        ('MUC', 'PRN')
-    ]
-
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
+        browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
         context = browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             extra_http_headers={
@@ -84,46 +71,57 @@ def main():
         )
         page = context.new_page()
 
-        for departure, arrival in airport_pairs:
-            for day in range(1, 30):
-                url = 'https://www.kosova-fly.de/'
-                page.goto(url)
-                random_sleep(2, 3)
+        url = 'https://www.kosova-fly.de/'
+        page.goto(url)
+        random_sleep(2, 3)
 
-                # Click the "Njëdrejtimshe" (one-way) radio button
-                page.click('input[value="ow"]')
+        # Click the "Njëdrejtimshe" (one-way) radio button
+        page.click('input[value="ow"]')
 
-                # Select the "Nisja nga" (Departure from) dropdown
-                page.select_option('select[name="VON"]', value=departure)
+        # Select the "Nisja nga" (Departure from) dropdown
+        page.select_option('select[name="VON"]', value='PRN')
 
-                # Select the "Kthimi" (Return to) dropdown
-                page.select_option('select[name="NACH"]', value=arrival)
+        # Select the "Kthimi" (Return to) dropdown
+        page.select_option('select[name="NACH"]', value='DUS')
 
-                # Set the departure date
-                target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m')
-                page.fill('input[name="DATUM_HIN"]', target_date)
+        # Set the departure date to 03.08
+           # Set the departure date to 03.08
+        target_date = (datetime.now() + timedelta(day)).strftime('%d.%m')
+        page.fill('input[name="DATUM_HIN"]', target_date)
 
-                # Click the search button
-                button_selector = 'a#buchen_aktion'
+        # Click the search button
+        button_selector = 'a#buchen_aktion'
 
-                # Wait for the button to be visible
-                page.wait_for_selector(button_selector, state='visible')
-                
-                # Click the search button
-                page.click(button_selector)
-                
-                # Wait for the page to load or content to update
-                page.wait_for_load_state('networkidle')
+        # Wait for the button to be visible
+        page.wait_for_selector(button_selector, state='visible')
+        
+        # Click the search button
+        page.click(button_selector)
+        
+        # Wait for the page to load or content to update
+        page.wait_for_load_state('networkidle')
 
-                random_sleep(2, 3)
+        random_sleep(2, 3)
 
-                page_html = page.content()
-                flights = extract_flight_info(page_html, target_date)
-                save_flights(flights, departure, arrival, day, url)
-                print("Flight information saved to database")
-                
-                time.sleep(1)
+        page_html = page.content()
+        flights = extract_flight_info(page_html, target_date)
 
+        if flights:
+            print("Flight information extracted:")
+            for flight in flights:
+                 print(f"Date: {flight['date']}, Time: {flight['time']}, Flight Number: {flight['flight_number']}, Price: {flight['price']}")
+        else:
+            print("No flights found for the specified date.")
+
+        # Save the flight information to a JSON file
+        with open('flights.json', 'w') as json_file:
+            json.dump(flights, json_file, indent=4)
+            print("Flight information saved to flights.json")
+
+        save_flights(flights, "Prishtina", "Düsseldorf" , day ,url)
+        print("Flight information saved to flights.db")
+        
+        time.sleep(5)
         browser.close()
 
 if __name__ == "__main__":
