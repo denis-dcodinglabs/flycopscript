@@ -5,11 +5,11 @@ import os
 import psycopg2
 from flask import Flask, jsonify, request
 import logging
-from airpristina import run_airprishtina_ticket_script
-# from flyska import run_flyska_ticket_script
-# from kosfly import run_kosfly_ticket_script
+# from airpristina import run_airprishtina_ticket_script
+from flyska import run_flyska_ticket_script
+from kosfly import run_kosfly_ticket_script
 from prishtinaticket import run_prishtina_ticket_script
-# from rfly import run_flyrbp_ticket_script
+from rfly import run_flyrbp_ticket_script
 
 def run_script_in_thread(script_function):
     """Run a script in a separate thread."""
@@ -48,7 +48,7 @@ def query_db(query, args=(), one=False):
 def run_scripts():
     try:
         # List of script functions to run
-        scripts = [run_prishtina_ticket_script, run_airprishtina_ticket_script]  # Add other script functions here
+        scripts = [run_prishtina_ticket_script, run_flyska_ticket_script , run_kosfly_ticket_script , run_flyrbp_ticket_script ]  # Add other script functions here
         # scripts = [run_prishtina_ticket_script, run_script1, run_script2]
 
         # Run each script in a separate thread
