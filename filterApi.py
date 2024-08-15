@@ -48,8 +48,7 @@ def query_db(query, args=(), one=False):
 def run_scripts():
     try:
         # List of script functions to run
-        scripts = [run_prishtina_ticket_script,
-                     run_airprishtina_ticket_script]  # Add other script functions here
+        scripts = [run_prishtina_ticket_script, run_airprishtina_ticket_script]  # Add other script functions here
         # scripts = [run_prishtina_ticket_script, run_script1, run_script2]
 
         # Run each script in a separate thread
