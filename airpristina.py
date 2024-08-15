@@ -69,7 +69,7 @@ def run_airprishtina_ticket_script():
                 random_sleep(1)
                 # Populate the "To" input field with the arrival location
                 page.fill('input#txt_Flight1To', arrival)
-                random_sleep(1)
+                random_sleep(3)
                 page.locator(f'[data-text="{arrival}"]').click()
                 random_sleep(1)
 
