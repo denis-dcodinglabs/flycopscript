@@ -44,7 +44,7 @@ def main():
     for departure, arrival in airport_pairs:
         for day in range(1, 30):
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
+                browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
                 context = browser.new_context(
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                     extra_http_headers={
@@ -65,12 +65,12 @@ def main():
 
                 page.fill('input#txt_Flight1From', departure)
                 random_sleep(1)
-                page.locator(f'[data-text="{departure}"]').click()
+                page.locator(f'#pnl_Flight1DestinationsFrom [data-text="{departure}"]').click()  # Updated locator
                 random_sleep(1)
                 # Populate the "To" input field with the arrival location
                 page.fill('input#txt_Flight1To', arrival)
                 random_sleep(1)
-                page.locator(f'[data-text="{arrival}"]').click()
+                page.locator(f'#pnl_Flight1DestinationsTo [data-text="{arrival}"]').click()  # Updated locator
                 random_sleep(1)
 
                 # Get the target date in the required format
