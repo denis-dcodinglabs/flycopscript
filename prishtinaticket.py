@@ -91,7 +91,6 @@ def extract_flight_info(page_html, target_date):
     return flights
 
 def run_prishtina_ticket_script():
-    subprocess.run(["playwright", "install"])
     airport_pairs = [
         ('PRN', 'DUS'),
         ('PRN', 'MUC'),
