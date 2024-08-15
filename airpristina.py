@@ -33,7 +33,7 @@ def extract_flight_info(page_html, flight_date):
 
     return flights
 
-def main():
+def run_airprishtina_ticket_script():
     airport_pairs = [
         ('Pristina', 'Düsseldorf'),
         ('Pristina', 'München'),
@@ -65,12 +65,12 @@ def main():
 
                 page.fill('input#txt_Flight1From', departure)
                 random_sleep(1)
-                page.locator(f'#pnl_Flight1DestinationsFrom [data-text="{departure}"]').click()  # Updated locator
+                page.locator(f'[data-text="{departure}"]').click()
                 random_sleep(1)
                 # Populate the "To" input field with the arrival location
                 page.fill('input#txt_Flight1To', arrival)
                 random_sleep(1)
-                page.locator(f'#pnl_Flight1DestinationsTo [data-text="{arrival}"]').click()  # Updated locator
+                page.locator(f'[data-text="{arrival}"]').click()
                 random_sleep(1)
 
                 # Get the target date in the required format
@@ -81,18 +81,15 @@ def main():
                 random_sleep(1)
 
                 # Debug print to check if the date picker is opened
-                print(f"Attempting to click on the date with data-usr-date=\"{target_date}\"")
 
                 # Ensure the date picker is visible
                 date_element = page.locator(f'td[data-usr-date="{target_date}"]')
                 if date_element.is_visible():
                     date_element.click()
-                    print(f"Clicked on the date with data-usr-date=\"{target_date}\"")
                 else:
                     # Wait for the date element to be visible
                     page.wait_for_selector(f'td[data-usr-date="{target_date}"]', timeout=5000)
                     date_element.click()
-                    print(f"Clicked on the date with data-usr-date=\"{target_date}\" after waiting")
 
                 random_sleep(1)
 
@@ -100,7 +97,6 @@ def main():
                 search_button_selector = 'button.btn.btn-red.ac-popup'
                 page.click(search_button_selector)
                 random_sleep(5)  # Increase sleep time to allow search results to load
-                print(f"Clicked the search button with selector: {search_button_selector}")
 
                 try:
                     load_more_button = page.locator("//button[contains(text(), 'Load more')]")
@@ -117,7 +113,6 @@ def main():
                 # Filter out incomplete flight records
                 complete_flights = [flight for flight in flights if all(flight.values())]
 
-                print(f"Extracted flights: {complete_flights}")
 
                 # Save the flight information to the database
                 save_flights(complete_flights, departure, arrival, day, url)
@@ -126,4 +121,4 @@ def main():
                 browser.close()
 
 if __name__ == "__main__":
-    main()
+    run_airprishtina_ticket_script()
