@@ -67,7 +67,7 @@ def run_flyrbp_ticket_script():
                 )
                 page = context.new_page()
                 url = 'https://www.flyrbp.com'
-                page.goto(url)
+                page.goto(url, timeout=60000)
                 random_sleep(2, 3)
                 page.click('input[value="ow"]')
 
