@@ -46,7 +46,7 @@ def extract_flight_info(page_html):
 
     return flights
 
-def main():
+def run_flyska_ticket_script():
     airport_pairs = [
         ('PRN', 'DUS'),
         ('PRN', 'MUC'),
@@ -55,7 +55,7 @@ def main():
     ]
 
     for departure, arrival in airport_pairs:
-        for day in range(1, 30):
+        for day in range(1, 8):
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
                 context = browser.new_context(
@@ -110,4 +110,4 @@ def main():
                 browser.close()
 
 if __name__ == "__main__":
-    main()
+    flights = run_flyska_ticket_script()
