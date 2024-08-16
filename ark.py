@@ -16,21 +16,24 @@ def extract_flight_info(page_html, target_date):
     soup = BeautifulSoup(page_html, 'html.parser')
     flights = []
 
-    # Select all rows in the table
-    rows = soup.select('table.flug_auswahl')
-    print(f"Found {len(rows)} rows in the flight table.")
 
-    target_day_month = target_date[:5]  # Extract "dd.mm" from "dd.mm.yyyy"
+    # Select all rows in the table
+    rows = soup.select('table.flug_auswahl tr.flugzeile')
+    print(f"Found {len(rows)} rows in the flight table.")
 
     for row in rows:
         # Extract date from the row
         date_cell = row.select_one('td.ab_datum')
         if date_cell:
             flight_date = date_cell.get_text(strip=True)
-            print(f"Checking flight date: {flight_date}")
-
+            flight_date_part = flight_date.split(' ')[1]  # Assuming the date is the second part
+            current_year = datetime.now().year
+            flight_date_with_year = f"{flight_date_part}.{current_year}"
+            flight_date_formatted = datetime.strptime(flight_date_with_year, '%d.%m.%Y').strftime('%d.%m.%Y')
             # Check if this is the desired date
-            if target_day_month in flight_date:
+            print(f"Checking flight date: {flight_date_formatted}")
+            print(f"Target date: {target_date}")
+            if target_date in flight_date_formatted:
                 # Extract flight details
                 time_cell = row.select_one('td.ab_an')
                 flight_number_cell = row.select_one('td.carrier_flugnr')
@@ -45,7 +48,7 @@ def extract_flight_info(page_html, target_date):
                 flights.append(flight)
     
     return flights
-def main():
+def run_arkpy_ticket_script():
     airport_pairs = [
         ('PRN', 'DUS'),
         ('PRN', 'MUC'),
@@ -56,7 +59,7 @@ def main():
     ]
 
     for departure, arrival in airport_pairs:
-        for day in range(1, 30):
+        for day in range(1, 8):
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
                 context = browser.new_context(
@@ -84,6 +87,8 @@ def main():
 
                 # Set the departure date
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m.%Y')
+                print(f"Searching for flights from {day}")
+                print(f"Target date in near main: {target_date}")
                 page.fill('input[name="DATUM_HIN"]', target_date)
 
                 # Click the search button
@@ -97,7 +102,7 @@ def main():
                 
                 try:
                     # Wait for the page to load or content to update
-                    page.wait_for_load_state('networkidle', timeout=60000)  # Increase timeout to 60 seconds
+                    page.wait_for_load_state('networkidle', timeout=20000)  # Increase timeout to 60 seconds
                 except TimeoutError:
                     print(f"Timeout while waiting for page to load for {departure} to {arrival} on {target_date}.")
                     continue
@@ -112,4 +117,4 @@ def main():
                 browser.close()
 
 if __name__ == "__main__":
-    main()
+    run_arkpy_ticket_script()
