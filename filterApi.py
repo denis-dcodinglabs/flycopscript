@@ -13,8 +13,17 @@ from kosfly import run_kosfly_ticket_script
 from prishtinaticket import run_prishtina_ticket_script
 from rfly import run_flyrbp_ticket_script
 
+
+logging.basicConfig(level=logging.INFO)
+
 def run_script_in_thread(script):
-    script()
+    try:
+        logging.info(f"Starting script: {script.__name__}")
+        script()
+        logging.info(f"Finished script: {script.__name__}")
+    except Exception as e:
+        logging.error(f"Error running script {script.__name__}: {str(e)}")
+
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
