@@ -7,7 +7,7 @@ import psycopg2
 import time
 from flask import Flask, jsonify, request
 import logging
-from airpristina import run_airprishtina_ticket_script
+# from airpristina import run_airprishtina_ticket_script
 from flyska import run_flyska_ticket_script
 from kosfly import run_kosfly_ticket_script
 from prishtinaticket import run_prishtina_ticket_script
@@ -59,7 +59,6 @@ def run_scripts():
         # List of script functions to run
         scripts = [
             run_prishtina_ticket_script,
-            run_airprishtina_ticket_script,
             run_flyska_ticket_script,
             run_kosfly_ticket_script,
             run_flyrbp_ticket_script
