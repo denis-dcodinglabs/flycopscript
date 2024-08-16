@@ -99,7 +99,7 @@ def run_flyska_ticket_script():
                 # Click the search button        
                 page.click('button:has-text("Kërko fluturim")')
 
-                random_sleep(3, 6)
+                random_sleep(3, 4)
 
                 page_html = page.content()
                 flights = extract_flight_info(page_html)
