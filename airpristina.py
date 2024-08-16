@@ -20,7 +20,7 @@ def extract_flight_info(page_html, flight_date):
     flight_rows = soup.select('div.available-flight')
     for flight_row in flight_rows:
         price_div = flight_row.select_one('div.price span.value')
-        airline_div = flight_row.select_one('div.operated-by')
+        airline_div = flight_row.select_one('div.flight-nr')
         departure_div = flight_row.select_one('span.departure-time')
 
         if price_div and airline_div and departure_div:
