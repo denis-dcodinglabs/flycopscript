@@ -1,20 +1,20 @@
 from datetime import datetime, timedelta
 from flask_cors import CORS
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import os
 import psycopg2
+import time
 from flask import Flask, jsonify, request
 import logging
-# from airpristina import run_airprishtina_ticket_script
+from airpristina import run_airprishtina_ticket_script
 from flyska import run_flyska_ticket_script
 from kosfly import run_kosfly_ticket_script
 from prishtinaticket import run_prishtina_ticket_script
 from rfly import run_flyrbp_ticket_script
 
-def run_script_in_thread(script_function):
-    """Run a script in a separate thread."""
-    thread = threading.Thread(target=script_function)
-    thread.start()
+def run_script_in_thread(script):
+    script()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -48,12 +48,18 @@ def query_db(query, args=(), one=False):
 def run_scripts():
     try:
         # List of script functions to run
-        scripts = [run_prishtina_ticket_script, run_flyska_ticket_script , run_kosfly_ticket_script , run_flyrbp_ticket_script ]  # Add other script functions here
-        # scripts = [run_prishtina_ticket_script, run_script1, run_script2]
+        scripts = [
+            run_prishtina_ticket_script,
+            run_airprishtina_ticket_script,
+            run_flyska_ticket_script,
+            run_kosfly_ticket_script,
+            run_flyrbp_ticket_script
+        ]  # Add other script functions here
 
-        # Run each script in a separate thread
+        # Run each script sequentially with a delay
         for script in scripts:
             run_script_in_thread(script)
+            time.sleep(120)  # Adjust the delay as needed
 
         return jsonify({'message': 'Scripts started'}), 200
     except Exception as e:
