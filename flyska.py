@@ -61,11 +61,15 @@ def navigate_to_date(page, target_date):
         page.wait_for_timeout(1000)
 
 def main():
-    airport_pairs = [
+     airport_pairs = [
+        ('MLH,BSL', 'PRN'),
         ('PRN', 'DUS'),
         ('PRN', 'MUC'),
         ('DUS', 'PRN'),
-        ('MUC', 'PRN')
+        ('PRN', 'STR'),
+        ('STR', 'PRN'),
+        ('PRN', 'MLH,BSL'),
+        ('MUC', 'PRN'),
     ]
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)  # Use headless=True for production
