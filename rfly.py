@@ -36,7 +36,7 @@ def extract_flight_info(page_html, target_date):
                     price = price_text if price_text != 'N/A' else 'N/A'
 
                 flight = {
-                    'date': flight_date,
+                    'date': target_date,
                     'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
                     'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
                     'price': price
@@ -67,7 +67,7 @@ def run_flyrbp_ticket_script():
                 )
                 page = context.new_page()
                 url = 'https://www.flyrbp.com'
-                page.goto(url, timeout=60000)
+                page.goto(url)
                 random_sleep(2, 3)
                 page.click('input[value="ow"]')
 
@@ -75,6 +75,7 @@ def run_flyrbp_ticket_script():
                 page.select_option('select[name="NACH"]', value=arrival)
 
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m')
+                
                 page.fill('input[name="DATUM_HIN"]', target_date)
 
                 page.click('a.book-home')
