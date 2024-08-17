@@ -40,6 +40,11 @@ def run_airprishtina_ticket_script():
         ('Düsseldorf', 'Pristina'),
         ('München', 'Pristina')
     ]
+    city_to_airport_code = {
+        'Pristina': 'PRN',
+        'Düsseldorf': 'DUS',
+        'München': 'MUC'
+    }
 
     for departure, arrival in airport_pairs:
         for day in range(1, 8):
@@ -62,7 +67,7 @@ def run_airprishtina_ticket_script():
                 # Click on the "One Way" option
                 page.click('div.one-way')
                 random_sleep(1)
-
+                print(f"Checking departure  : {departure}")
                 page.fill('input#txt_Flight1From', departure)
                 random_sleep(1)
                 page.locator(f'[data-text="{departure}"]').click()
@@ -112,10 +117,15 @@ def run_airprishtina_ticket_script():
 
                 # Filter out incomplete flight records
                 complete_flights = [flight for flight in flights if all(flight.values())]
-
+                tempdeparture = departure
+                temparival = arrival
+                departure = city_to_airport_code[departure]
+                arrival = city_to_airport_code[arrival]
 
                 # Save the flight information to the database
                 save_flights(complete_flights, departure, arrival, day, url)
+                departure = tempdeparture
+                arrival = temparival
                 print(f"Flight information saved for {departure} to {arrival} on day {day}")
 
                 browser.close()
