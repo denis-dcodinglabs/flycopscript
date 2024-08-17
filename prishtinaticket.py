@@ -67,6 +67,8 @@ def extract_flight_info(page_html, target_date):
             print(f"Checking flight date: {flight_date}")
 
             # Check if this is the desired date
+            print(f"Target date: {target_date}")
+            print(f"Flight date: {flight_date}")
             if target_date in flight_date:
                 # Extract flight details
                 time_cell = row.select_one('td.ab_an')
@@ -92,11 +94,16 @@ def extract_flight_info(page_html, target_date):
 
 def run_prishtina_ticket_script():
     airport_pairs = [
-        ('PRN', 'DUS'),
-        ('PRN', 'MUC'),
-        ('DUS', 'PRN'),
-        ('MUC', 'PRN')
+        ('Prishtina (PRN)', 'Düsseldorf (DUS)'),
+        ('Prishtina (PRN)', 'München (MUC)'),
+        ('Düsseldorf (DUS)', 'Prishtina (PRN)'),
+        ('München (MUC)', 'Prishtina (PRN)')
     ]
+    city_to_airport_code = {
+        'Prishtina (PRN)': 'PRN',
+        'Düsseldorf (DUS)': 'DUS',
+        'München (MUC)': 'MUC'
+    }
 
     for departure, arrival in airport_pairs:
         for day in range(1, 8):
@@ -139,9 +146,14 @@ def run_prishtina_ticket_script():
                         print(f"Date: {flight['date']}, Time: {flight['time']}, Flight Number: {flight['flight_number']}, Price: {flight['price']}")
                 else:
                     print("No flights found for the specified date.")
-
+                tempdeparture = departure
+                temparival = arrival
+                departure = city_to_airport_code[departure]
+                arrival = city_to_airport_code[arrival]
                 # Save the flight information to the database
                 save_flights(flights, departure, arrival, day, url)
+                departure = tempdeparture
+                arrival = temparival
                 print("Flight information saved to database.")
                 browser.close()
     
