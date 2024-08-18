@@ -97,12 +97,21 @@ def run_prishtina_ticket_script():
         ('Prishtina (PRN)', 'Düsseldorf (DUS)'),
         ('Prishtina (PRN)', 'München (MUC)'),
         ('Düsseldorf (DUS)', 'Prishtina (PRN)'),
-        ('München (MUC)', 'Prishtina (PRN)')
+        ('München (MUC)', 'Prishtina (PRN)'),
+        ('Prishtina (PRN)', 'Nürnberg (NUE)'),
+        ('Prishtina (PRN)', 'Stuttgart (STR)'),
+        ('Prishtina (PRN)', 'Basel/Mulhouse (MLH)'),
+        ('Basel/Mulhouse (MLH)', 'Prishtina (PRN)'),
+        ('Nürnberg (NUE)', 'Prishtina (PRN)'),
+        ('Stuttgart (STR)', 'Prishtina (PRN)')
     ]
     city_to_airport_code = {
         'Prishtina (PRN)': 'PRN',
         'Düsseldorf (DUS)': 'DUS',
-        'München (MUC)': 'MUC'
+        'München (MUC)': 'MUC',
+        'Nürnberg (NUE)': 'NUE',
+        'Stuttgart (STR)': 'STR',
+        'Basel/Mulhouse (MLH)':'(MLH)'
     }
 
     for departure, arrival in airport_pairs:
