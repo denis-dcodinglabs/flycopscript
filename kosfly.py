@@ -67,9 +67,8 @@ def extract_flight_info(page_html, target_date):
 def run_kosfly_ticket_script():
     airport_pairs = [
         ('PRN', 'DUS'),
-        ('PRN', 'MUC'),
         ('DUS', 'PRN'),
-        ('MUC', 'PRN')
+       
     ]
 
     all_flights = []
