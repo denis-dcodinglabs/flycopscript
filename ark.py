@@ -58,6 +58,8 @@ def run_arkpy_ticket_script():
         ('STR', 'PRN'),
         ('PRN', 'MLH'),
         ('MUC', 'PRN'),
+        ('PRN', 'NUR'),
+        ('NUR', 'PRN'),
     ]
 
     for departure, arrival in airport_pairs:
