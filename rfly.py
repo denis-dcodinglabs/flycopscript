@@ -46,7 +46,7 @@ def extract_flight_info(page_html, target_date):
     return flights
 
 def run_flyrbp_ticket_script():
-      airport_pairs = [
+    airport_pairs = [
         ('MLH', 'PRN'),
         ('PRN', 'DUS'),
         ('PRN', 'MUC'),
@@ -55,6 +55,8 @@ def run_flyrbp_ticket_script():
         ('STR', 'PRN'),
         ('PRN', 'MLH'),
         ('MUC', 'PRN'),
+        ('PRN', 'NUE'),
+        ('NUE', 'PRN'),
     ]
 
     for departure, arrival in airport_pairs:
