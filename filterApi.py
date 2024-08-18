@@ -68,7 +68,7 @@ def run_scripts():
         ]
 
         # Use ThreadPoolExecutor to run multiple scripts concurrently
-        with ThreadPoolExecutor(max_workers=3) as executor:  # Adjust max_workers as needed
+        with ThreadPoolExecutor(max_workers=2) as executor:  # Adjust max_workers as needed
             futures = [executor.submit(run_script_in_thread, script) for script in scripts]
             
             # Optionally, wait for all futures to complete (blocking call)
