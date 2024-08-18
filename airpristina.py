@@ -35,15 +35,22 @@ def extract_flight_info(page_html, flight_date):
 
 def run_airprishtina_ticket_script():
     airport_pairs = [
+        ('Pristina', 'Basel-Mulhouse'),
+        ('Pristina', 'Stuttgart'),
         ('Pristina', 'Düsseldorf'),
         ('Pristina', 'München'),
         ('Düsseldorf', 'Pristina'),
-        ('München', 'Pristina')
+        ('München', 'Pristina'),
+        ('Stuttgart', 'Pristina'),
+        ('Basel-Mulhouse', 'Pristina')
+        
     ]
     city_to_airport_code = {
         'Pristina': 'PRN',
         'Düsseldorf': 'DUS',
-        'München': 'MUC'
+        'München': 'MUC',
+        'Stuttgart': 'STR',
+        'Basel-Mulhouse':'BSL'
     }
 
     for departure, arrival in airport_pairs:
