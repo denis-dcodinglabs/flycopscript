@@ -7,7 +7,7 @@ import psycopg2
 import time
 from flask import Flask, jsonify, request
 import logging
-# from airpristina import run_airprishtina_ticket_script
+from airpristina import run_airprishtina_ticket_script
 from ark import run_arkpy_ticket_script
 from flyska import run_flyska_ticket_script
 from kosfly import run_kosfly_ticket_script
