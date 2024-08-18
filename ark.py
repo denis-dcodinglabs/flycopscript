@@ -49,13 +49,15 @@ def extract_flight_info(page_html, target_date):
     
     return flights
 def run_arkpy_ticket_script():
-    airport_pairs = [
+          airport_pairs = [
+        ('MLH', 'PRN'),
         ('PRN', 'DUS'),
         ('PRN', 'MUC'),
-        ('PRN', 'STR'),
         ('DUS', 'PRN'),
-        ('MUC', 'PRN'),
+        ('PRN', 'STR'),
         ('STR', 'PRN'),
+        ('PRN', 'MLH'),
+        ('MUC', 'PRN'),
     ]
 
     for departure, arrival in airport_pairs:
