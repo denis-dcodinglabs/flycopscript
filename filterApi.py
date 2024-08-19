@@ -56,7 +56,7 @@ def query_db(query, args=(), one=False):
 
 @app.route('/script', methods=['GET'])
 def run_scripts():
-    try:
+    def run_all_scripts():
         # List of script functions to run
         scripts = [
             run_prishtina_ticket_script,
@@ -69,8 +69,13 @@ def run_scripts():
         # Run each script sequentially with a delay
         for script in scripts:
             run_script_in_thread(script)
-            time.sleep(120)  # Adjust the delay as needed
+            time.sleep(30)  # Adjust the delay as needed
 
+    try:
+        # Start running the scripts in a background thread
+        threading.Thread(target=run_all_scripts).start()
+
+        # Return response immediately
         return jsonify({'message': 'Scripts started'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
