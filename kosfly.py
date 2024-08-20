@@ -40,27 +40,26 @@ def extract_flight_info(page_html, target_date):
             print(f"Checking flight date: {flight_date}")
             flight_date_part = flight_date.split(' ')[1]
             # Check if this is the desired date
-            if target_date == flight_date_part:
-                print(f"Match found for date: {target_date}")
-                # Extract flight details
-                time_cell = row.select_one('td.ab_an')
-                flight_number_cell = row.select_one('td.carrier_flugnr')
-                price_cell = row.select_one('td.b_ges_preis')
+            flight_date_formatted = flight_date_part
+            # Extract flight details
+            time_cell = row.select_one('td.ab_an')
+            flight_number_cell = row.select_one('td.carrier_flugnr')
+            price_cell = row.select_one('td.b_ges_preis')
 
-                price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
-                price_text = price_text.replace('€', '').replace(',', '.').strip()
-                if price_text.lower() == 'sold out':
-                    price = 'N/A'
-                else:
-                    price = price_text if price_text != 'N/A' else 'N/A'
+            price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
+            price_text = price_text.replace('€', '').replace(',', '.').strip()
+            if price_text.lower() == 'sold out':
+                 price = 'N/A'
+            else:
+                price = price_text if price_text != 'N/A' else 'N/A'
                     
-                flight = {
-                    'date': flight_date,
-                    'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
-                    'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
-                    'price': price
-                }
-                flights.append(flight)
+            flight = {
+                'date': flight_date_formatted,
+                'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
+                 'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
+                  'price': price
+             }
+            flights.append(flight)
     
     return flights
 
@@ -120,6 +119,12 @@ def run_kosfly_ticket_script():
 
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
+                if flights:
+                    print("Flight information extracted:")
+                    for flight in flights:
+                        print(f"Date: {flight['date']}, Time: {flight['time']}, Flight Number: {flight['flight_number']}, Price: {flight['price']}")
+                else:
+                    print("No flights found for the specified date.")
                 save_flights(flights, departure, arrival, day, url)
                 all_flights.extend(flights)
                 print("Flight information saved to database")
