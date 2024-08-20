@@ -21,6 +21,7 @@ def extract_flight_info(page_html):
         if date_cell:
             flight_date = date_cell.get_text(strip=True)
             print(f"Checking flight date: {flight_date}")
+            flight_date_part = flight_date.split(' ')[1]
 
             time_cell = row.select_one('td.ab_an')
             flight_number_cell = row.select_one('td.carrier_flugnr')
@@ -34,7 +35,7 @@ def extract_flight_info(page_html):
                 price = price_text if price_text != 'N/A' else 'N/A'
 
             flight = {
-                'date': flight_date,
+                'date': flight_date_part,
                 'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
                 'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
                 'price': price
