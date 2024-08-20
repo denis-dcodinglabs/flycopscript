@@ -11,7 +11,7 @@ load_dotenv()
 def random_sleep(min_seconds=1, max_seconds=2):
     time.sleep(random.uniform(min_seconds, max_seconds))
 
-def extract_flight_info_for_day(page, target_date):
+def extract_flight_info_for_day(page, target_date, formatted_date):
     # Get the HTML content from the page
     page_html = page.content()
     soup = BeautifulSoup(page_html, 'html.parser')
@@ -43,12 +43,12 @@ def extract_flight_info_for_day(page, target_date):
 
         # Flight number
         flight_number = f"{target_date}{departure_time}"
-
+        print(f"New formatted date {formatted_date}")
         flights.append({
             'price': price,
             'flight_number': flight_number,
             'time': flight_time,
-            'date': target_date
+            'date': formatted_date
         })
 
     return flights
@@ -103,6 +103,7 @@ def run_flyska_ticket_script():
 
                     target_date = datetime.now() + timedelta(days=day)
                     target_date_str = target_date.strftime('%Y-%m-%d')
+                    database_targetdate = target_date.strftime('%d-%m')
 
                     target_month = target_date.month
                     target_year = target_date.year
@@ -136,7 +137,7 @@ def run_flyska_ticket_script():
 
                     random_sleep(3, 6)
 
-                    flights = extract_flight_info_for_day(page, target_date_str)
+                    flights = extract_flight_info_for_day(page, target_date_str,database_targetdate)
                     
                     if flights:
                         # Save the flight information to the database
