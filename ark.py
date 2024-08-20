@@ -28,24 +28,20 @@ def extract_flight_info(page_html, target_date):
             flight_date = date_cell.get_text(strip=True)
             flight_date_part = flight_date.split(' ')[1]  # Assuming the date is the second part
             current_year = datetime.now().year
-            flight_date_with_year = f"{flight_date_part}.{current_year}"
-            flight_date_formatted = datetime.strptime(flight_date_with_year, '%d.%m.%Y').strftime('%d.%m.%Y')
+            flight_date_formatted = flight_date_part
             # Check if this is the desired date
-            print(f"Checking flight date: {flight_date_formatted}")
-            print(f"Target date: {target_date}")
-            if target_date in flight_date_formatted:
                 # Extract flight details
-                time_cell = row.select_one('td.ab_an')
-                flight_number_cell = row.select_one('td.carrier_flugnr')
-                price_cell = row.select_one('td.b_ges_preis')
+            time_cell = row.select_one('td.ab_an')
+            flight_number_cell = row.select_one('td.carrier_flugnr')
+            price_cell = row.select_one('td.b_ges_preis')
 
-                flight = {
-                    'date': target_date,
-                    'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
-                    'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
-                    'price': price_cell.get_text(strip=True) if price_cell else 'N/A'
-                }
-                flights.append(flight)
+            flight = {
+                'date': flight_date_formatted   ,
+                'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
+                 'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
+                 'price': price_cell.get_text(strip=True) if price_cell else 'N/A'
+            }
+            flights.append(flight)
     
     return flights
 def run_arkpy_ticket_script():
@@ -66,7 +62,7 @@ def run_arkpy_ticket_script():
     }
 
     for departure, arrival in airport_pairs:
-        for day in range(0, 8):
+        for day in range(0, 1):
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
                 context = browser.new_context(
@@ -91,11 +87,8 @@ def run_arkpy_ticket_script():
 
                 # Select the "Kthimi" (Return to) dropdown
                 page.select_option('select[name="NACH"]', value=arrival)
-
                 # Set the departure date
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m.%Y')
-                print(f"Searching for flights from {day}")
-                print(f"Target date in near main: {target_date}")
                 page.fill('input[name="DATUM_HIN"]', target_date)
 
                 # Click the search button
@@ -117,7 +110,6 @@ def run_arkpy_ticket_script():
                 random_sleep(2, 3)
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
-                print(flights)
                 original_departure = departure
                 original_arrival = arrival
                 departure = city_to_airport_code.get(departure, departure)
