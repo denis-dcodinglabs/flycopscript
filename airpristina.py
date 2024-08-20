@@ -13,7 +13,7 @@ load_dotenv()
 def random_sleep(min_seconds=1, max_seconds=2):
     time.sleep(random.uniform(min_seconds, max_seconds))
 
-def extract_flight_info(page_html, flight_date):
+def extract_flight_info(page_html, flight_date, formatted_date):
     soup = BeautifulSoup(page_html, 'html.parser')
     flights = []
 
@@ -28,7 +28,7 @@ def extract_flight_info(page_html, flight_date):
                 'price': price_div.get_text(strip=True),
                 'flight_number': airline_div.get_text(strip=True),
                 'time': departure_div.get_text(strip=True),
-                'date': flight_date
+                'date': formatted_date
             })
 
     return flights
@@ -87,7 +87,7 @@ def run_airprishtina_ticket_script():
 
                 # Get the target date in the required format
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%Y-%m-%d')
-
+                formatted_date = (datetime.now() + timedelta(days=day)).strftime('%d-%m')
                 # Click on the date input field to open the date picker
                 page.click('input#txt_FromDateText')
                 random_sleep(1)
@@ -120,7 +120,7 @@ def run_airprishtina_ticket_script():
 
                 random_sleep(5)  # Additional sleep to ensure the page content is fully loaded
                 page_html = page.content()
-                flights = extract_flight_info(page_html, target_date)
+                flights = extract_flight_info(page_html, target_date, formatted_date)
 
                 # Filter out incomplete flight records
                 complete_flights = [flight for flight in flights if all(flight.values())]
