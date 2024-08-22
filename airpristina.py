@@ -81,7 +81,7 @@ def run_airprishtina_ticket_script():
                 random_sleep(1)
                 # Populate the "To" input field with the arrival location
                 page.fill('input#txt_Flight1To', arrival)
-                random_sleep(3)
+                random_sleep(1)
                 page.locator(f'[data-text="{arrival}"]').click()
                 random_sleep(1)
 
@@ -103,7 +103,7 @@ def run_airprishtina_ticket_script():
                     page.wait_for_selector(f'td[data-usr-date="{target_date}"]', timeout=5000)
                     date_element.click()
 
-                random_sleep(1)
+                random_sleep(3)
 
                 # Click the search button
                 search_button_selector = 'button.btn.btn-red.ac-popup'
