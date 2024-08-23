@@ -11,7 +11,7 @@ load_dotenv()
 def random_sleep(min_seconds=1, max_seconds=2):
     time.sleep(random.uniform(min_seconds, max_seconds))
 
-def extract_flight_info_for_day(page, target_date):
+def extract_flight_info_for_day(page, target_date, formatted_date):
     # Get the HTML content from the page
     page_html = page.content()
     soup = BeautifulSoup(page_html, 'html.parser')
@@ -43,18 +43,17 @@ def extract_flight_info_for_day(page, target_date):
 
         # Flight number
         flight_number = f"{target_date}{departure_time}"
-
+        print(f"New formatted date {formatted_date}")
         flights.append({
             'price': price,
             'flight_number': flight_number,
             'time': flight_time,
-            'date': target_date
+            'date': formatted_date
         })
 
     return flights
 
-
-def main():
+def run_flyska_ticket_script():
     airport_pairs = [
         ('MLH,BSL', 'PRN'),
         ('PRN', 'DUS'),
@@ -65,9 +64,11 @@ def main():
         ('PRN', 'MLH,BSL'),
         ('MUC', 'PRN'),
     ]
-
+    city_to_airport_code = {
+        'MLH,BSL': 'BSL',
+    }
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # Use headless=True for production
+        browser = p.chromium.launch(headless=True)  # Use headless=True for production
         context = browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             extra_http_headers={
@@ -79,7 +80,7 @@ def main():
         page = context.new_page()
 
         for departure, arrival in airport_pairs:
-            for day in range(10, 18):
+            for day in range(0, 8):
                 try:
                     url = 'https://prod.flyksa.com/sq'
                     page.goto(url)
@@ -102,6 +103,7 @@ def main():
 
                     target_date = datetime.now() + timedelta(days=day)
                     target_date_str = target_date.strftime('%Y-%m-%d')
+                    database_targetdate = target_date.strftime('%d-%m')
 
                     target_month = target_date.month
                     target_year = target_date.year
@@ -111,7 +113,10 @@ def main():
                     now = datetime.now()
                     displayed_month = now.month
                     displayed_year = now.year
+                    print(f"Navigating from {displayed_month} to {target_month} on year {displayed_year}")
                     while True:
+                        print(f"Navigating from {displayed_month} to {target_month} on year {displayed_year}")
+                        # Check if the displayed month and year match the target month and year
                         if displayed_year == target_year and displayed_month == target_month:
                              break
                          
@@ -127,15 +132,24 @@ def main():
                     page.click(day_selector)
                     page.wait_for_timeout(1000)
 
+                    # Click the search button        
                     page.click('button:has-text("Kërko fluturim")')
 
-                    random_sleep(3, 5)
+                    random_sleep(3, 6)
 
-                    flights = extract_flight_info_for_day(page, target_date_str)
+                    flights = extract_flight_info_for_day(page, target_date_str,database_targetdate)
                     
                     if flights:
                         # Save the flight information to the database
+                        original_departure = departure
+                        original_arrival = arrival
+                        departure = city_to_airport_code.get(departure, departure)
+                        arrival = city_to_airport_code.get(arrival, arrival)
                         save_flights(flights, departure, arrival, day, url)
+
+                        # Revert to original airport codes after saving
+                        departure = original_departure
+                        arrival = original_arrival
                         print(f"Flight information saved for {departure} to {arrival} on day {day}")
                     else:
                         print(f"No flight data found for {departure} to {arrival} on {target_date_str}")
@@ -147,4 +161,4 @@ def main():
         browser.close()
 
 if __name__ == "__main__":
-    main()
+    run_flyska_ticket_script()
