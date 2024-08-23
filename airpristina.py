@@ -13,7 +13,7 @@ load_dotenv()
 def random_sleep(min_seconds=1, max_seconds=2):
     time.sleep(random.uniform(min_seconds, max_seconds))
 
-def extract_flight_info(page_html, flight_date, formatted_date):
+def extract_flight_info(page_html, flight_date):
     soup = BeautifulSoup(page_html, 'html.parser')
     flights = []
 
@@ -28,7 +28,7 @@ def extract_flight_info(page_html, flight_date, formatted_date):
                 'price': price_div.get_text(strip=True),
                 'flight_number': airline_div.get_text(strip=True),
                 'time': departure_div.get_text(strip=True),
-                'date': formatted_date
+                'date': flight_date
             })
 
     return flights
@@ -54,9 +54,9 @@ def run_airprishtina_ticket_script():
     }
 
     for departure, arrival in airport_pairs:
-        for day in range(0, 8):
+        for day in range(0,30, 7):
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
+                browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
                 context = browser.new_context(
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                     extra_http_headers={
@@ -76,34 +76,21 @@ def run_airprishtina_ticket_script():
                 random_sleep(1)
                 print(f"Checking departure  : {departure}")
                 page.fill('input#txt_Flight1From', departure)
-                random_sleep(1)
                 page.locator(f'[data-text="{departure}"]').click()
-                random_sleep(1)
                 # Populate the "To" input field with the arrival location
                 page.fill('input#txt_Flight1To', arrival)
-                random_sleep(1)
-                page.locator(f'[data-text="{arrival}"]').click()
-                random_sleep(1)
-
+                page.wait_for_selector(f'div#pnl_Flight1DestinationsTo div.destination[data-text="{arrival}"]', state='visible')
+                page.click(f'div#pnl_Flight1DestinationsTo div.destination[data-text="{arrival}"]')
+        
                 # Get the target date in the required format
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%Y-%m-%d')
-                formatted_date = (datetime.now() + timedelta(days=day)).strftime('%d-%m')
-                # Click on the date input field to open the date picker
                 page.click('input#txt_FromDateText')
-                random_sleep(1)
 
-                # Debug print to check if the date picker is opened
+# Wait for the date picker to be visible and the target date to appear
+                page.wait_for_selector(f'td[data-usr-date="{target_date}"]', timeout=5000)
 
-                # Ensure the date picker is visible
-                date_element = page.locator(f'td[data-usr-date="{target_date}"]')
-                if date_element.is_visible():
-                    date_element.click()
-                else:
-                    # Wait for the date element to be visible
-                    page.wait_for_selector(f'td[data-usr-date="{target_date}"]', timeout=5000)
-                    date_element.click()
-
-                random_sleep(3)
+# Click on the target date
+                page.click(f'td[data-usr-date="{target_date}"]')
 
                 # Click the search button
                 search_button_selector = 'button.btn.btn-red.ac-popup'
@@ -118,9 +105,8 @@ def run_airprishtina_ticket_script():
                 except Exception as e:
                     print(f"Load More button not found or error occurred: {e}")
 
-                random_sleep(5)  # Additional sleep to ensure the page content is fully loaded
                 page_html = page.content()
-                flights = extract_flight_info(page_html, target_date, formatted_date)
+                flights = extract_flight_info(page_html, target_date)
 
                 # Filter out incomplete flight records
                 complete_flights = [flight for flight in flights if all(flight.values())]
