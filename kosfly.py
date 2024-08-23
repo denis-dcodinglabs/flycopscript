@@ -36,44 +36,43 @@ def extract_flight_info(page_html, target_date):
         date_cell = row.select_one('td.ab_datum')
         if date_cell:
             flight_date = date_cell.get_text(strip=True)
-            print(flight_date)
-            print(f"Checking flight date: {flight_date}")
+            
             flight_date_part = flight_date.split(' ')[1]
             # Check if this is the desired date
-            flight_date_formatted = flight_date_part
-            # Extract flight details
-            time_cell = row.select_one('td.ab_an')
-            flight_number_cell = row.select_one('td.carrier_flugnr')
-            price_cell = row.select_one('td.b_ges_preis')
+            if target_date == flight_date_part:
+                print(f"Match found for date: {target_date}")
+                # Extract flight details
+                time_cell = row.select_one('td.ab_an')
+                flight_number_cell = row.select_one('td.carrier_flugnr')
+                price_cell = row.select_one('td.b_ges_preis')
 
-            price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
-            price_text = price_text.replace('€', '').replace(',', '.').strip()
-            if price_text.lower() == 'sold out':
-                 price = 'N/A'
-            else:
-                price = price_text if price_text != 'N/A' else 'N/A'
+                price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
+                price_text = price_text.replace('€', '').replace(',', '.').strip()
+                if price_text.lower() == 'sold out':
+                    price = 'N/A'
+                else:
+                    price = price_text if price_text != 'N/A' else 'N/A'
                     
-            flight = {
-                'date': flight_date_formatted,
-                'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
-                 'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
-                  'price': price
-             }
-            flights.append(flight)
+                flight = {
+                    'date': flight_date,
+                    'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
+                    'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
+                    'price': price
+                }
+                flights.append(flight)
     
     return flights
 
-def run_kosfly_ticket_script():
+def main():
     airport_pairs = [
         ('PRN', 'DUS'),
+        ('PRN', 'MUC'),
         ('DUS', 'PRN'),
-       
+        ('MUC', 'PRN')
     ]
 
-    all_flights = []
-
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
+        browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
         context = browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             extra_http_headers={
@@ -85,7 +84,7 @@ def run_kosfly_ticket_script():
         page = context.new_page()
 
         for departure, arrival in airport_pairs:
-            for day in range(0, 8):
+            for day in range(17, 30):
                 url = 'https://www.kosova-fly.de/'
                 page.goto(url)
                 random_sleep(2, 3)
@@ -100,11 +99,14 @@ def run_kosfly_ticket_script():
                 page.select_option('select[name="NACH"]', value=arrival)
 
                 # Set the departure date
-                target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m')
+                target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m.%YYY')
                 page.fill('input[name="DATUM_HIN"]', target_date)
+                random_sleep(1, 2)
+
+                page.click('input[name="DATUM_HIN"]')
 
                 # Click the search button
-                button_selector = 'a#buchen_aktion'
+                button_selector = 'div.marT25 a#buchen_aktion'
 
                 # Wait for the button to be visible
                 page.wait_for_selector(button_selector, state='visible')
@@ -119,21 +121,12 @@ def run_kosfly_ticket_script():
 
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
-                if flights:
-                    print("Flight information extracted:")
-                    for flight in flights:
-                        print(f"Date: {flight['date']}, Time: {flight['time']}, Flight Number: {flight['flight_number']}, Price: {flight['price']}")
-                else:
-                    print("No flights found for the specified date.")
                 save_flights(flights, departure, arrival, day, url)
-                all_flights.extend(flights)
                 print("Flight information saved to database")
                 
                 time.sleep(1)
 
         browser.close()
 
-    return {"status": "success", "message": "Flyrbp ticket script executed"}
-
 if __name__ == "__main__":
-    flights = run_kosfly_ticket_script()
+    main()
