@@ -16,6 +16,7 @@ def extract_flight_info(page_html, target_date):
     soup = BeautifulSoup(page_html, 'html.parser')
     flights = []
 
+
     # Select all rows in the table
     rows = soup.select('table.flug_auswahl tr.flugzeile')
     print(f"Found {len(rows)} rows in the flight table.")
@@ -29,21 +30,20 @@ def extract_flight_info(page_html, target_date):
             current_year = datetime.now().year
             flight_date_formatted = flight_date_part
             # Check if this is the desired date
-            # Extract flight details
+                # Extract flight details
             time_cell = row.select_one('td.ab_an')
             flight_number_cell = row.select_one('td.carrier_flugnr')
             price_cell = row.select_one('td.b_ges_preis')
 
             flight = {
-                'date': flight_date_formatted,
+                'date': flight_date_formatted   ,
                 'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
-                'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
-                'price': price_cell.get_text(strip=True) if price_cell else 'N/A'
+                 'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
+                 'price': price_cell.get_text(strip=True) if price_cell else 'N/A'
             }
             flights.append(flight)
-
+    
     return flights
-
 def run_arkpy_ticket_script():
     airport_pairs = [
         ('MLH', 'PRN'),
@@ -61,15 +61,23 @@ def run_arkpy_ticket_script():
         'MLH': 'BSL',
     }
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
-        page = browser.new_page()
-        url = 'https://www.airtiketa.com'
-        for departure, arrival in airport_pairs:
-            for day in range(7, 30 ,8 ):
-            
+    for departure, arrival in airport_pairs:
+        for day in range(0, 1):
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
+                context = browser.new_context(
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    extra_http_headers={
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Connection': 'keep-alive',
+                        'DNT': '1',
+                    }
+                )
+                page = context.new_page()
+
+                url = 'https://www.airtiketa.com'
                 page.goto(url)
-                random_sleep(1, 2)
+                random_sleep(2, 3)
 
                 # Click the "Njëdrejtimshe" (one-way) radio button
                 page.click('input[value="ow"]')
@@ -79,24 +87,27 @@ def run_arkpy_ticket_script():
 
                 # Select the "Kthimi" (Return to) dropdown
                 page.select_option('select[name="NACH"]', value=arrival)
-                
                 # Set the departure date
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m.%Y')
                 page.fill('input[name="DATUM_HIN"]', target_date)
 
                 # Click the search button
                 button_selector = 'button#buchen_aktion'
+
+                # Wait for the button to be visible
                 page.wait_for_selector(button_selector, state='visible')
+                
+                # Click the search button
                 page.click(button_selector)
                 
                 try:
                     # Wait for the page to load or content to update
-                    page.wait_for_load_state('networkidle', timeout=5000)  # Increase timeout to 20 seconds
+                    page.wait_for_load_state('networkidle', timeout=20000)  # Increase timeout to 60 seconds
                 except TimeoutError:
                     print(f"Timeout while waiting for page to load for {departure} to {arrival} on {target_date}.")
                     continue
 
-                random_sleep(1, 2)
+                random_sleep(2, 3)
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
                 original_departure = departure
@@ -110,9 +121,7 @@ def run_arkpy_ticket_script():
                 arrival = original_arrival
                 print(f"Flight information saved for {departure} to {arrival} on day {day}")
 
-        page.close()
-
-        browser.close()
+                browser.close()
 
 if __name__ == "__main__":
     run_arkpy_ticket_script()
