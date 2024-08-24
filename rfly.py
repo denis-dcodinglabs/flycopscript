@@ -83,11 +83,12 @@ def run_flyrbp_ticket_script():
             page.select_option('select[name="VON"]', value=departure)
             page.select_option('select[name="NACH"]', value=arrival)
 
+            target_date_year = (datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y')
             target_date = (datetime.now() + timedelta(days=1)).strftime('%d.%m')
 
-            page.fill('input[name="DATUM_HIN"]', target_date)
+            page.fill('input[name="DATUM_HIN"]', target_date_year)
             page.click('a.book-home')
-            random_sleep(2, 3)
+            random_sleep(4, 5)
 
             page_html = page.content()
             flights = extract_flight_info(page_html)
@@ -104,7 +105,7 @@ def run_flyrbp_ticket_script():
 
                     # Send the API call to check existence
                     response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
-                    if response.status_code == 201 and response.json() is True:
+                    if response.status_code == 201 and response.json() is False:
                         
                         departure_code = city_to_airport_code.get(departure, departure)
                         arrival_code = city_to_airport_code.get(arrival, arrival)
