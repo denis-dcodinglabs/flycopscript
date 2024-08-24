@@ -5,6 +5,7 @@ import time
 from playwright.sync_api import sync_playwright, TimeoutError
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import requests
 from database import save_flights
 
 load_dotenv()
@@ -15,6 +16,7 @@ def random_sleep(min_seconds=1, max_seconds=5):
 def extract_flight_info(page_html, target_date):
     soup = BeautifulSoup(page_html, 'html.parser')
     flights = []
+
 
     # Select all rows in the table
     rows = soup.select('table.flug_auswahl tr.flugzeile')
@@ -29,22 +31,21 @@ def extract_flight_info(page_html, target_date):
             current_year = datetime.now().year
             flight_date_formatted = flight_date_part
             # Check if this is the desired date
-            # Extract flight details
+                # Extract flight details
             time_cell = row.select_one('td.ab_an')
             flight_number_cell = row.select_one('td.carrier_flugnr')
             price_cell = row.select_one('td.b_ges_preis')
 
             flight = {
-                'date': flight_date_formatted,
+                'date': flight_date_formatted   ,
                 'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
-                'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
-                'price': price_cell.get_text(strip=True) if price_cell else 'N/A'
+                 'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
+                 'price': price_cell.get_text(strip=True) if price_cell else 'N/A'
             }
             flights.append(flight)
-
+    
     return flights
-
-def run_arkpy_30days_ticket_script():
+def run_arkpy_ticket_script():
     airport_pairs = [
         ('MLH', 'PRN'),
         ('PRN', 'DUS'),
@@ -61,15 +62,23 @@ def run_arkpy_30days_ticket_script():
         'MLH': 'BSL',
     }
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
-        page = browser.new_page()
-        url = 'https://www.airtiketa.com'
-        for departure, arrival in airport_pairs:
-            for day in range(7, 30 ,8 ):
-            
+    for departure, arrival in airport_pairs:
+        for day in range(7, 30, 8):
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
+                context = browser.new_context(
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    extra_http_headers={
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Connection': 'keep-alive',
+                        'DNT': '1',
+                    }
+                )
+                page = context.new_page()
+
+                url = 'https://www.airtiketa.com'
                 page.goto(url)
-                random_sleep(1, 2)
+                random_sleep(2, 3)
 
                 # Click the "Njëdrejtimshe" (one-way) radio button
                 page.click('input[value="ow"]')
@@ -79,40 +88,72 @@ def run_arkpy_30days_ticket_script():
 
                 # Select the "Kthimi" (Return to) dropdown
                 page.select_option('select[name="NACH"]', value=arrival)
-                
                 # Set the departure date
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m.%Y')
+                print(f"Searching for flights from {departure} to {arrival} on {target_date}.")
                 page.fill('input[name="DATUM_HIN"]', target_date)
-
+                random_sleep(2, 3)
                 # Click the search button
                 button_selector = 'button#buchen_aktion'
+
+                # Wait for the button to be visible
                 page.wait_for_selector(button_selector, state='visible')
+                
+                # Click the search button
                 page.click(button_selector)
                 
                 try:
                     # Wait for the page to load or content to update
-                    page.wait_for_load_state('networkidle', timeout=5000)  # Increase timeout to 20 seconds
+                    page.wait_for_load_state('networkidle', timeout=20000)  # Increase timeout to 60 seconds
                 except TimeoutError:
                     print(f"Timeout while waiting for page to load for {departure} to {arrival} on {target_date}.")
                     continue
 
-                random_sleep(1, 2)
+                random_sleep(2, 3)
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
-                original_departure = departure
-                original_arrival = arrival
-                departure = city_to_airport_code.get(departure, departure)
-                arrival = city_to_airport_code.get(arrival, arrival)
-                save_flights(flights, departure, arrival, day, url)
+                if flights:
+                    print("Flight information extracted:")
+                    for flight in flights:
+                    # Prepare the payload for the API call
+                        payload = {
+                            'date': flight['date'],
+                            'time': flight['time'],
+                            'flight_number': flight['flight_number'],
+                            'price': flight['price']
+                     }
 
-                # Revert to original airport codes after saving
-                departure = original_departure
-                arrival = original_arrival
-                print(f"Flight information saved for {departure} to {arrival} on day {day}")
+                    try:
+                        # Send the API call to check existence
+                        response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
+                        response.raise_for_status()  # Raise an exception for HTTP errors
 
-        page.close()
+                        if response.status_code == 201 and response.json() is False:
+                            original_departure = departure
+                            original_arrival = arrival
+                            departure = city_to_airport_code.get(departure, departure)
+                            arrival = city_to_airport_code.get(arrival, arrival)
 
-        browser.close()
+                            # Save the flight information
+                            save_flights([flight], departure, arrival, target_date, url)
+                            departure = original_departure
+                            arrival = original_arrival
+                    except requests.exceptions.RequestException as e:
+                        print(f"Request failed: {e}")
+                        original_departure = departure
+                        original_arrival = arrival
+                        departure = city_to_airport_code.get(departure, departure)
+                        arrival = city_to_airport_code.get(arrival, arrival)
 
+                     # Save the flight information
+                        save_flights([flight], departure, arrival, target_date, url)
+                        departure = original_departure
+                        arrival = original_arrival
+                    
+                else:  
+                    print("No flights found for the specified date.")
+                
+                browser.close()
+    return {"status": "success", "message": "Flyrbp ticket script executed"}
 if __name__ == "__main__":
-    run_arkpy_30days_ticket_script()
+    run_arkpy_ticket_script()
