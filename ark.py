@@ -5,6 +5,7 @@ import time
 from playwright.sync_api import sync_playwright, TimeoutError
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import requests
 from database import save_flights
 
 load_dotenv()
@@ -89,8 +90,9 @@ def run_arkpy_ticket_script():
                 page.select_option('select[name="NACH"]', value=arrival)
                 # Set the departure date
                 target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m.%Y')
+                print(f"Searching for flights from {departure} to {arrival} on {target_date}.")
                 page.fill('input[name="DATUM_HIN"]', target_date)
-
+                random_sleep(2, 3)
                 # Click the search button
                 button_selector = 'button#buchen_aktion'
 
@@ -110,18 +112,48 @@ def run_arkpy_ticket_script():
                 random_sleep(2, 3)
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
-                original_departure = departure
-                original_arrival = arrival
-                departure = city_to_airport_code.get(departure, departure)
-                arrival = city_to_airport_code.get(arrival, arrival)
-                save_flights(flights, departure, arrival, day, url)
+                if flights:
+                    print("Flight information extracted:")
+                    for flight in flights:
+                    # Prepare the payload for the API call
+                        payload = {
+                            'date': flight['date'],
+                            'time': flight['time'],
+                            'flight_number': flight['flight_number'],
+                            'price': flight['price']
+                     }
 
-                # Revert to original airport codes after saving
-                departure = original_departure
-                arrival = original_arrival
-                print(f"Flight information saved for {departure} to {arrival} on day {day}")
+                    try:
+                        # Send the API call to check existence
+                        response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
+                        response.raise_for_status()  # Raise an exception for HTTP errors
 
+                        if response.status_code == 201 and response.json() is False:
+                            original_departure = departure
+                            original_arrival = arrival
+                            departure = city_to_airport_code.get(departure, departure)
+                            arrival = city_to_airport_code.get(arrival, arrival)
+
+                            # Save the flight information
+                            save_flights([flight], departure, arrival, target_date, url)
+                            departure = original_departure
+                            arrival = original_arrival
+                    except requests.exceptions.RequestException as e:
+                        print(f"Request failed: {e}")
+                        original_departure = departure
+                        original_arrival = arrival
+                        departure = city_to_airport_code.get(departure, departure)
+                        arrival = city_to_airport_code.get(arrival, arrival)
+
+                     # Save the flight information
+                        save_flights([flight], departure, arrival, target_date, url)
+                        departure = original_departure
+                        arrival = original_arrival
+                    
+                else:  
+                    print("No flights found for the specified date.")
+                
                 browser.close()
-
+    return {"status": "success", "message": "Flyrbp ticket script executed"}
 if __name__ == "__main__":
     run_arkpy_ticket_script()
