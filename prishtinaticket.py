@@ -6,6 +6,7 @@ import time
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import requests
 from database import save_flights
 
 load_dotenv()
@@ -64,31 +65,31 @@ def extract_flight_info(page_html, target_date):
         date_cell = row.select_one('td.ab_datum')
         if date_cell:
             flight_date = date_cell.get_text(strip=True)
-            print(f"Checking flight date: {flight_date}")
+            flight_date_part = flight_date.split(' ')[1]  # Assuming the date is the second part
+            current_year = datetime.now().year
+            flight_date_formatted = flight_date_part
 
             # Check if this is the desired date
-            print(f"Target date: {target_date}")
             print(f"Flight date: {flight_date}")
-            if target_date in flight_date:
-                # Extract flight details
-                time_cell = row.select_one('td.ab_an')
-                flight_number_cell = row.select_one('td.carrier_flugnr')
-                price_cell = row.select_one('td.b_ges_preis')
+            # Extract flight details
+            time_cell = row.select_one('td.ab_an')
+            flight_number_cell = row.select_one('td.carrier_flugnr')
+            price_cell = row.select_one('td.b_ges_preis')
 
-                price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
-                price_text = price_text.replace('€', '').replace(',', '.').strip()
-                if price_text.lower() == 'sold out':
-                    price = 'N/A'
-                else:
-                    price = price_text if price_text != 'N/A' else 'N/A'
+            price_text = price_cell.get_text(strip=True) if price_cell else 'N/A'
+            price_text = price_text.replace('€', '').replace(',', '.').strip()
+            if price_text.lower() == 'sold out':
+                 price = 'N/A'
+            else:
+                price = price_text if price_text != 'N/A' else 'N/A'
 
-                flight = {
-                    'date': target_date,
-                    'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
-                    'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
-                    'price': price
-                }
-                flights.append(flight)
+            flight = {
+                'date': flight_date_formatted,
+                'time': time_cell.get_text(strip=True) if time_cell else 'N/A',
+                'flight_number': flight_number_cell.get_text(strip=True) if flight_number_cell else 'N/A',
+                'price': price
+            }
+            flights.append(flight)
     
     return flights
 
@@ -115,7 +116,7 @@ def run_prishtina_ticket_script():
     }
 
     for departure, arrival in airport_pairs:
-        for day in range(0, 8):
+        for day in range(0, 2):
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
                 context = browser.new_context(
@@ -139,7 +140,7 @@ def run_prishtina_ticket_script():
                 page.select_option('select[name="NACH"]', value=arrival)
 
                 # Set the departure date
-                target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m')
+                target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m.%Y')
                 page.fill('input[name="DATUM_HIN"]', target_date)
 
                 # Click the search button
@@ -149,21 +150,45 @@ def run_prishtina_ticket_script():
                 page_html = page.content()
                 flights = extract_flight_info(page_html, target_date)
 
-                if flights:
-                    print("Flight information extracted:")
-                    for flight in flights:
-                        print(f"Date: {flight['date']}, Time: {flight['time']}, Flight Number: {flight['flight_number']}, Price: {flight['price']}")
-                else:
+                for flight in flights:
+                        print(f"Checking existence of flight: {flight['flight_number']} on {flight['date']} at {flight['time']} for {flight['price']}€")
+                    # Prepare the payload for the API call
+                        payload = {
+                            'date': flight['date'],
+                            'time': flight['time'],
+                            'flight_number': flight['flight_number'],
+                            'price': flight['price']
+                        }
+
+                        try:
+                            # Send the API call to check existence
+                            response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
+                            response.raise_for_status()  # Raise an exception for HTTP errors
+
+                            if response.status_code == 201 and response.json() is False:
+                                original_departure = departure
+                                original_arrival = arrival
+                                departure = city_to_airport_code.get(departure, departure)
+                                arrival = city_to_airport_code.get(arrival, arrival)
+
+                                # Save the flight information
+                                save_flights([flight], departure, arrival, target_date, url)
+                                departure = original_departure
+                                arrival = original_arrival
+                        except requests.exceptions.RequestException as e:
+                            print(f"Request failed: {e}")
+                            original_departure = departure
+                            original_arrival = arrival
+                            departure = city_to_airport_code.get(departure, departure)
+                            arrival = city_to_airport_code.get(arrival, arrival)
+
+                        # Save the flight information
+                            save_flights([flight], departure, arrival, target_date, url)
+                            departure = original_departure
+                            arrival = original_arrival
+                        
+                else:  
                     print("No flights found for the specified date.")
-                tempdeparture = departure
-                temparival = arrival
-                departure = city_to_airport_code[departure]
-                arrival = city_to_airport_code[arrival]
-                # Save the flight information to the database
-                save_flights(flights, departure, arrival, day, url)
-                departure = tempdeparture
-                arrival = temparival
-                print("Flight information saved to database.")
                 browser.close()
     
     return {"status": "success", "message": "Prishtina ticket script executed"}
