@@ -121,37 +121,37 @@ def run_arkpy_ticket_script():
                             'time': flight['time'],
                             'flight_number': flight['flight_number'],
                             'price': flight['price']
-                     }
+                        }
 
-                    try:
-                        # Send the API call to check existence
-                        response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
-                        response.raise_for_status()  # Raise an exception for HTTP errors
+                        try:
+                            # Send the API call to check existence
+                            response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
+                            response.raise_for_status()  # Raise an exception for HTTP errors
 
-                        if response.status_code == 201 and response.json() is False:
+                            if response.status_code == 201 and response.json() is False:
+                                original_departure = departure
+                                original_arrival = arrival
+                                departure = city_to_airport_code.get(departure, departure)
+                                arrival = city_to_airport_code.get(arrival, arrival)
+
+                                # Save the flight information
+                                save_flights([flight], departure, arrival, target_date, url)
+                                departure = original_departure
+                                arrival = original_arrival
+                        except requests.exceptions.RequestException as e:
+                            print(f"Request failed: {e}")
                             original_departure = departure
                             original_arrival = arrival
                             departure = city_to_airport_code.get(departure, departure)
                             arrival = city_to_airport_code.get(arrival, arrival)
 
-                            # Save the flight information
+                        # Save the flight information
                             save_flights([flight], departure, arrival, target_date, url)
                             departure = original_departure
                             arrival = original_arrival
-                    except requests.exceptions.RequestException as e:
-                        print(f"Request failed: {e}")
-                        original_departure = departure
-                        original_arrival = arrival
-                        departure = city_to_airport_code.get(departure, departure)
-                        arrival = city_to_airport_code.get(arrival, arrival)
-
-                     # Save the flight information
-                        save_flights([flight], departure, arrival, target_date, url)
-                        departure = original_departure
-                        arrival = original_arrival
-                    
-                else:  
-                    print("No flights found for the specified date.")
+                        
+                    else:  
+                        print("No flights found for the specified date.")
                 
                 browser.close()
     return {"status": "success", "message": "Flyrbp ticket script executed"}
