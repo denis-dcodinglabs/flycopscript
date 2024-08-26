@@ -8,6 +8,7 @@ import time
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import requests
 from database import save_flights
 
 load_dotenv()
@@ -73,7 +74,7 @@ def run_kosfly_ticket_script():
     all_flights = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
+        browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
         context = browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             extra_http_headers={
@@ -85,7 +86,7 @@ def run_kosfly_ticket_script():
         page = context.new_page()
 
         for departure, arrival in airport_pairs:
-            for day in range(0, 8):
+            for day in range(0, 1):
                 url = 'https://www.kosova-fly.de/'
                 page.goto(url)
                 random_sleep(2, 3)
@@ -100,7 +101,8 @@ def run_kosfly_ticket_script():
                 page.select_option('select[name="NACH"]', value=arrival)
 
                 # Set the departure date
-                target_date = (datetime.now() + timedelta(days=day)).strftime('%d.%m')
+                target_date = (datetime.now() + timedelta(days=day)).strftime('%Y-%m-%d')
+                formatted_date = (datetime.now() + timedelta(days=day+1)).strftime('%d-%m')
                 page.fill('input[name="DATUM_HIN"]', target_date)
 
                 # Click the search button
@@ -122,12 +124,31 @@ def run_kosfly_ticket_script():
                 if flights:
                     print("Flight information extracted:")
                     for flight in flights:
-                        print(f"Date: {flight['date']}, Time: {flight['time']}, Flight Number: {flight['flight_number']}, Price: {flight['price']}")
-                else:
-                    print("No flights found for the specified date.")
-                save_flights(flights, departure, arrival, day, url)
-                all_flights.extend(flights)
-                print("Flight information saved to database")
+                    # Prepare the payload for the API call
+                        payload = {
+                            'date': flight['date'],
+                            'time': flight['time'],
+                            'flight_number': flight['flight_number'],
+                            'price': flight['price']
+                        }
+
+                        try:
+                            # Send the API call to check existence
+                            response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
+                            response.raise_for_status()  # Raise an exception for HTTP errors
+
+                            if response.status_code == 201 and response.json() is False:
+                                print("here")
+                                # Save the flight information
+                                save_flights([flight], departure, arrival, formatted_date, url)
+                        except requests.exceptions.RequestException as e:
+                            print(f"Request failed: {e}")
+                        # Save the flight information
+                            save_flights([flight], departure, arrival, formatted_date, url)
+
+                        
+                    else:  
+                        print("No flights found for the specified date.")
                 
                 time.sleep(1)
 
