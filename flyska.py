@@ -4,6 +4,7 @@ import time
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import requests
 from database import save_flights
 
 load_dotenv()
@@ -43,7 +44,6 @@ def extract_flight_info_for_day(page, target_date, formatted_date):
 
         # Flight number
         flight_number = f"{target_date}{departure_time}"
-        print(f"New formatted date {formatted_date}")
         flights.append({
             'price': price,
             'flight_number': flight_number,
@@ -68,7 +68,7 @@ def run_flyska_ticket_script():
         'MLH,BSL': 'BSL',
     }
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)  # Use headless=True for production
+        browser = p.chromium.launch(headless=False)  # Use headless=True for production
         context = browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             extra_http_headers={
@@ -113,9 +113,7 @@ def run_flyska_ticket_script():
                     now = datetime.now()
                     displayed_month = now.month
                     displayed_year = now.year
-                    print(f"Navigating from {displayed_month} to {target_month} on year {displayed_year}")
                     while True:
-                        print(f"Navigating from {displayed_month} to {target_month} on year {displayed_year}")
                         # Check if the displayed month and year match the target month and year
                         if displayed_year == target_year and displayed_month == target_month:
                              break
@@ -140,19 +138,38 @@ def run_flyska_ticket_script():
                     flights = extract_flight_info_for_day(page, target_date_str,database_targetdate)
                     
                     if flights:
-                        # Save the flight information to the database
-                        original_departure = departure
-                        original_arrival = arrival
-                        departure = city_to_airport_code.get(departure, departure)
-                        arrival = city_to_airport_code.get(arrival, arrival)
-                        save_flights(flights, departure, arrival, day, url)
+                        for flight in flights:
+                        # Prepare the payload for the API call
+                            payload = {
+                                'date': flight['date'],
+                                'time': flight['time'],
+                                'flight_number': flight['flight_number'],
+                                'price': flight['price']
+                            }
 
-                        # Revert to original airport codes after saving
-                        departure = original_departure
-                        arrival = original_arrival
-                        print(f"Flight information saved for {departure} to {arrival} on day {day}")
-                    else:
-                        print(f"No flight data found for {departure} to {arrival} on {target_date_str}")
+                            try:
+                                # Send the API call to check existence
+                                response = requests.post('http://scrap-dot-flycop-431921.el.r.appspot.com/check-existence', json=payload)
+                                response.raise_for_status()  # Raise an exception for HTTP errors
+
+                                if response.status_code == 201 and response.json() is False:
+                                    print("about to be saved to the database")
+                                    # Save the flight information
+                                    original_departure = departure
+                                    original_arrival = arrival
+                                    departure = city_to_airport_code.get(departure, departure)
+                                    arrival = city_to_airport_code.get(arrival, arrival)
+                                    save_flights([flight], departure, arrival, flight['date'], url)
+                                    departure = original_departure
+                                    arrival = original_arrival
+                            except requests.exceptions.RequestException as e:
+                                print(f"Request failed: {e}")
+                            # Save the flight information
+                                save_flights([flight], departure, arrival, flight['date]'], url)
+
+                        
+                    else:  
+                        print("No flights found for the specified date.")
 
                 except Exception as e:
                     print(f"An error occurred while processing {departure} to {arrival} on day {day}: {e}")
