@@ -65,7 +65,7 @@ def run_flyrbp_ticket_script():
 
     for departure, arrival in airport_pairs:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(headless=True)
             context = browser.new_context(
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 extra_http_headers={
@@ -112,7 +112,10 @@ def run_flyrbp_ticket_script():
 
                         # Save the flight information
                         save_flights([flight], departure_code, arrival_code, target_date, url)
+                        print(f"Flight: {flight['flight_number']} on {flight['date']} at {flight['time']} for {flight['price']}€ saved.")
                         continue
+                    else:
+                        print("Flight already exists.")
                     
             else:  
                 print("No flights found for the specified date.")
