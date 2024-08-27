@@ -74,7 +74,7 @@ def run_kosfly_ticket_script():
     all_flights = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # Set to True to run headlessly
+        browser = p.chromium.launch(headless=True)  # Set to True to run headlessly
         context = browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             extra_http_headers={
@@ -138,7 +138,6 @@ def run_kosfly_ticket_script():
                             response.raise_for_status()  # Raise an exception for HTTP errors
 
                             if response.status_code == 201 and response.json() is False:
-                                print("here")
                                 # Save the flight information
                                 save_flights([flight], departure, arrival, formatted_date, url)
                         except requests.exceptions.RequestException as e:
