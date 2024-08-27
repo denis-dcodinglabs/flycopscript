@@ -103,7 +103,7 @@ def run_flyska_ticket_script():
 
                     target_date = datetime.now() + timedelta(days=day)
                     target_date_str = target_date.strftime('%Y-%m-%d')
-                    database_targetdate = target_date.strftime('%d-%m')
+                    database_targetdate = target_date.strftime('%d.%m')
 
                     target_month = target_date.month
                     target_year = target_date.year
@@ -159,7 +159,7 @@ def run_flyska_ticket_script():
                                     original_arrival = arrival
                                     departure = city_to_airport_code.get(departure, departure)
                                     arrival = city_to_airport_code.get(arrival, arrival)
-                                    save_flights([flight], departure, arrival, flight['date'], url)
+                                    save_flights([flight], departure, arrival, database_targetdate, url)
                                     departure = original_departure
                                     arrival = original_arrival
                             except requests.exceptions.RequestException as e:
