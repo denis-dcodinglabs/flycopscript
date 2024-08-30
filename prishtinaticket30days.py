@@ -92,7 +92,7 @@ def extract_flight_info(page_html, target_date):
     
     return flights
 
-def run_prishtina_ticket_script():
+def run_prishtina_ticket_script_30days():
     airport_pairs = [
         ('Prishtina (PRN)', 'Düsseldorf (DUS)'),
         ('Prishtina (PRN)', 'München (MUC)'),
@@ -115,7 +115,7 @@ def run_prishtina_ticket_script():
     }
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 extra_http_headers={
@@ -195,4 +195,4 @@ def run_prishtina_ticket_script():
 
 # You can still call main() directly for standalone script execution
 if __name__ == "__main__":
-    run_prishtina_ticket_script()
+    run_prishtina_ticket_script_30days()
